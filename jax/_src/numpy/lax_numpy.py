@@ -7853,6 +7853,8 @@ def _take(a, indices, axis: int | None = None, out=None, mode=None,
       list(range(axis_idx)) +
       list(range(axis_idx + index_dims, len(a.shape) + index_dims - 1))),
     collapsed_slice_dims=(axis_idx,),
+    operand_batching_dims=(),
+    start_indices_batching_dims=(),
     start_index_map=(axis_idx,))
   return lax.gather(a, indices[..., None], dimension_numbers=dnums,
                     slice_sizes=tuple(slice_sizes),
@@ -8022,6 +8024,7 @@ def take_along_axis(
       # Otherwise, idx_shape[i] == arr_shape[i]. Use an iota index so
       # corresponding elements of array and index are gathered.
       # TODO(mattjj): next line needs updating for dynamic shapes
+      # DO NOT SUBMIT - can use batching dims?!
       iota = lax.broadcasted_iota(index_dtype, gather_index_shape, j)
       gather_indices.append(iota)
       slice_sizes.append(1)
@@ -8033,6 +8036,8 @@ def take_along_axis(
   dnums = lax.GatherDimensionNumbers(
     offset_dims=tuple(offset_dims),
     collapsed_slice_dims=tuple(collapsed_slice_dims),
+    operand_batching_dims=(),
+    start_indices_batching_dims=(),
     start_index_map=tuple(start_index_map))
   return lax.gather(a, gather_indices_arr, dnums, tuple(slice_sizes),
                     mode="fill" if mode is None else mode, fill_value=fill_value)
@@ -8439,6 +8444,7 @@ def _index_to_gather(x_shape: Sequence[int], idx: Sequence[Any],
         gather_slice_shape.append(slice_size)
         offset_dims.append(collapsed_y_axis)
       else:
+        # DO NOT SUBMIT - can use batching dims?!
         indices = (array(start, dtype=index_dtype) +
                    array(step, dtype=index_dtype) * lax.iota(index_dtype, slice_size))
         if step < 0:
@@ -8480,6 +8486,8 @@ def _index_to_gather(x_shape: Sequence[int], idx: Sequence[Any],
   dnums = lax.GatherDimensionNumbers(
     offset_dims = tuple(offset_dims),
     collapsed_slice_dims = tuple(sorted(collapsed_slice_dims)),
+    operand_batching_dims=(),
+    start_indices_batching_dims=(),
     start_index_map = tuple(start_index_map)
   )
   return _Indexer(

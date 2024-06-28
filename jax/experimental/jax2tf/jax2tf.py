@@ -2862,6 +2862,7 @@ def _iota_2x32_shape(*, shape):
 tf_impl[prng.iota_2x32_shape_p] = _iota_2x32_shape
 
 
+# DO NOT SUBMIT
 def _gather_dimensions_proto(indices_shape, dimension_numbers):
   proto = xla_data_pb2.GatherDimensionNumbers()
   proto.offset_dims.extend(dimension_numbers.offset_dims)
@@ -2972,6 +2973,7 @@ def _dynamic_update_slice(operand, update, *start_indices,
 tf_impl_with_avals[lax.dynamic_update_slice_p] = _dynamic_update_slice
 
 
+# DO NOT SUBMIT
 def _scatter_dimensions_proto(indices_shape, dimension_numbers):
   proto = xla_data_pb2.ScatterDimensionNumbers()
   proto.update_window_dims.extend(dimension_numbers.update_window_dims)

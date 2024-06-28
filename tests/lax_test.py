@@ -2556,7 +2556,8 @@ class LaxTest(jtu.JaxTestCase):
          "Invalid collapsed_slice_dims set in gather op; valid range is"),
         ("RepeatedWindowToInputMapping", (10, 9, 8, 7, 6), (5, 4, 3, 2, 5),
          (4, 5, 6, 7, 8), (0, 1, 2, 3, 3), (0, 1, 2, 3, 4), (10, 9, 8, 7, 6),
-         "collapsed_slice_dims in gather op must not repeat"),
+         ("collapsed_slice_dims \\+ operand_batching_dims in gather op must "
+          "not repeat")),
         ("MismatchingGatherToInputMapping", (10, 9, 8, 7, 6), (5, 4, 3, 2, 5),
          (4, 5, 6, 7, 8), (), (0, 1, 2, 3), (10, 9, 8, 7, 6),
          ("Gather op has 4 elements in start_index_map and the bound of "
@@ -2567,7 +2568,8 @@ class LaxTest(jtu.JaxTestCase):
          "Invalid start_index_map"),
         ("RepeatedGatherToInputMapping", (10, 9, 8, 7, 6), (5, 4, 3, 2, 5),
          (4, 5, 6, 7, 8), (), (0, 1, 2, 3, 3), (10, 9, 8, 7, 6),
-         "start_index_map in gather op must not repeat"),
+         ("start_index_map \\+ operand_batching_dims in gather op must not "
+          "repeat")),
         ("NonAscendingElidedWindowDims", (10, 9, 8, 7, 6), (5, 4, 3, 2, 5),
          (4, 5, 6, 7, 8), (2, 1), (0, 1, 2, 3, 4), (10, 9, 8, 7, 6),
          "collapsed_slice_dims in gather op must be sorted"),
@@ -2585,6 +2587,15 @@ class LaxTest(jtu.JaxTestCase):
   )
   def testGatherShapeCheckingRule(self, operand_shape, indices_shape,
                                   dimension_numbers, slice_sizes, msg):
+    """
+
+    Args:
+      operand_shape:
+      indices_shape:
+      dimension_numbers:
+      slice_sizes:
+      msg:
+    """
     operand = np.ones(operand_shape, dtype=np.int32)
     indices = np.ones(indices_shape, dtype=np.int32)
 
@@ -2769,7 +2780,8 @@ class LaxTest(jtu.JaxTestCase):
               ("RepeatedInsertedWindowDims", (50, 49, 48, 47, 46),
                np.zeros((10, 9, 8, 7, 5)), (10, 9, 8, 7, 3, 2, 4),
                (4, 5, 6), (1, 1), (0, 1, 2, 3, 4),
-               "inserted_window_dims in scatter op must not repeat"),
+               ("inserted_window_dims \\+ operand_batching_dims in scatter op "
+                "must not repeat")),
               ("OutOfBoundsInsertedWindowDims", (50, 49, 48, 47, 46),
                np.zeros((10, 9, 8, 7, 5)), (10, 9, 8, 7, 3, 2, 4),
                (4, 5, 6), (1, 5), (0, 1, 2, 3, 4),
@@ -2787,7 +2799,8 @@ class LaxTest(jtu.JaxTestCase):
               ("RepeatedValuesInScatterDimsToOperandDims", (50, 49, 48, 47, 46),
                np.zeros((10, 9, 8, 7, 5)), (10, 9, 8, 7, 3, 2, 4),
                (4, 5, 6), (1, 2), (0, 1, 2, 2, 3),
-               "scatter_dims_to_operand_dims in scatter op must not repeat"),
+               ("scatter_dims_to_operand_dims \\+ operand_batching_dims in "
+                "scatter op must not repeat")),
               ("InsufficientWindowDims", (50, 49, 48, 47, 46),
                np.zeros((10, 9, 8, 7, 5)), (10, 9, 8, 7, 3, 2, 4),
                (4, 5, 6), (1,), (0, 1, 2, 3),

@@ -1498,7 +1498,10 @@ def _pgather_impl(src, idx, *, axes):
   dnums = slicing.GatherDimensionNumbers(
       offset_dims=offset_dims,
       collapsed_slice_dims=(0,),
-      start_index_map=(0,))
+      operand_batching_dims=(),
+      start_indices_batching_dims=(),
+      start_index_map=(0,),
+  )
   return slicing.gather(src_one_axis_front, idx, dimension_numbers=dnums,
                         slice_sizes=tuple(slice_sizes))
 
