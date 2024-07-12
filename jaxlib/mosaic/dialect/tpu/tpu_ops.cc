@@ -488,6 +488,63 @@ LogicalResult RegionOp::verify() {
   return success();
 }
 
+LogicalResult ShuffledLoadOp::verify() {
+  if (getBase().getType().getRank() != getIndices().size()) {
+    return emitOpError("Base memref's rank and indices size do not match: ")
+           << getBase().getType().getRank() << " vs " << getIndices().size();
+  }
+  if (getSublaneMask().size() != getSublaneOffsets().size()) {
+    return emitOpError("Sublane mask and sublane offsets size do not match: ")
+           << getSublaneMask().size() << " vs " << getSublaneOffsets().size();
+  }
+  return success();
+}
+
+LogicalResult ShuffledLoadOp::canonicalize(ShuffledLoadOp op,
+                                           PatternRewriter &rewriter) {
+  // TODO(mosaic): update 8 based on target.
+  SmallVector<int32_t, 8> default_pattern(8, 0);
+  absl::c_iota(default_pattern, 0);
+  if (op.getSublaneOffsets() == ArrayRef<int32_t>(default_pattern)) {
+    rewriter.replaceOpWithNewOp<tpu::LoadOp>(
+        op, op.getType(), op.getBase(), op.getIndices(), op.getSublaneMask(),
+        /*sublane_stride=*/nullptr);
+  }
+  return success();
+}
+
+LogicalResult ShuffledStoreOp::verify() {
+  if (getBase().getType().getRank() != getIndices().size()) {
+    return emitOpError("Base memref's rank and indices size do not match: ")
+           << getBase().getType().getRank() << " vs " << getIndices().size();
+  }
+  if (getValueToStore().getType().getRank() != getIndices().size()) {
+    return emitOpError(
+               "The rank of value to store and indices size do not match: ")
+           << getBase().getType().getRank() << " vs " << getIndices().size();
+  }
+
+  if (getSublaneMask().size() != getSublaneOffsets().size()) {
+    return emitOpError("Sublane mask and sublane offsets size do not match: ")
+           << getSublaneMask().size() << " vs " << getSublaneOffsets().size();
+  }
+  return success();
+}
+
+LogicalResult ShuffledStoreOp::canonicalize(ShuffledStoreOp op,
+                                            PatternRewriter &rewriter) {
+  // TODO(mosaic): update 8 based on target.
+  SmallVector<int32_t, 8> default_pattern(8, 0);
+  absl::c_iota(default_pattern, 0);
+  if (op.getSublaneOffsets() == ArrayRef<int32_t>(default_pattern)) {
+    rewriter.replaceOpWithNewOp<tpu::StoreOp>(op, op.getValueToStore(),
+                                              op.getBase(), op.getIndices(),
+                                              op.getSublaneMask(),
+                                              /*mask=*/nullptr,
+                                              /*sublane_stride=*/nullptr);
+  }
+  return success();
+}
 }  // namespace tpu
 }  // namespace mlir
 
