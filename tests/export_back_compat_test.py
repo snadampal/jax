@@ -114,6 +114,8 @@ class CompatTest(bctu.CompatTestBase):
     targets_to_cover = set(_export._CUSTOM_CALL_TARGETS_GUARANTEED_STABLE)
     cpu_ffi_testdatas = [
         cpu_cholesky_lapack_potrf.data_2024_05_31,
+        cpu_eig_lapack_geev.data_2024_08_19,
+        cpu_eigh_lapack_syev.data_2024_08_19,
         cpu_lu_lapack_getrf.data_2024_05_31,
         cpu_svd_lapack_gesdd.data_2024_08_13,
     ]
@@ -255,6 +257,14 @@ class CompatTest(bctu.CompatTestBase):
 
     self.run_one_test(func, data, rtol=rtol, atol=atol,
                       check_results=check_eig_results)
+    # TODO(b/344892332): Remove the check after the compatibility period.
+    has_xla_ffi_support = jaxlib_version >= (0, 4, 32)
+    if has_xla_ffi_support:
+      with config.export_ignore_forward_compatibility(True):
+        # FFI Kernel test
+        data = self.load_testdata(cpu_eig_lapack_geev.data_2024_08_19[dtype_name])
+        self.run_one_test(func, data, rtol=rtol, atol=atol,
+                          check_results=check_eig_results)
 
   @staticmethod
   def eigh_input(shape, dtype):
@@ -305,6 +315,14 @@ class CompatTest(bctu.CompatTestBase):
     atol = dict(f32=1e-4, f64=1e-12, c64=1e-4, c128=1e-12)[dtype_name]
     self.run_one_test(func, data, rtol=rtol, atol=atol,
                       check_results=partial(self.check_eigh_results, operand))
+    # TODO(b/344892332): Remove the check after the compatibility period.
+    has_xla_ffi_support = jaxlib_version >= (0, 4, 32)
+    if has_xla_ffi_support:
+      # FFI Kernel test
+      with config.export_ignore_forward_compatibility(True):
+        data = self.load_testdata(cpu_eigh_lapack_syev.data_2024_08_19[dtype_name])
+        self.run_one_test(func, data, rtol=rtol, atol=atol,
+                          check_results=partial(self.check_eigh_results, operand))
 
   @parameterized.named_parameters(
       dict(testcase_name=f"_dtype={dtype_name}_{variant}",
