@@ -184,6 +184,14 @@ def cholesky_update(r_matrix: ArrayLike, w_vector: ArrayLike) -> Array:
   return cholesky_update_p.bind(r_matrix, w_vector)
 
 
+def xxt(a_matrix: ArrayLike, symmetrize_output=False):
+  """Computes the matrix product of a matrix and its transpose."""
+  result = xxt_p.bind(a_matrix)
+  if symmetrize_output:
+    result += jnp.tril(result, k=-1).T
+  return result
+
+
 def lu_pivots_to_permutation(pivots: ArrayLike, permutation_size: int) -> Array:
   """Converts the pivots (row swaps) returned by LU to a permutation.
 
@@ -550,6 +558,7 @@ def _cholesky_update_jax_fn(R, z):
     R = R.at[k, :].set(row_k)
   return R
 
+
 cholesky_update_p = Primitive('cholesky_update')
 cholesky_update_p.multiple_results = False
 cholesky_update_p.def_abstract_eval(_cholesky_update_abstract_eval)
@@ -561,6 +570,33 @@ mlir.register_lowering(
 mlir.register_lowering(
     cholesky_update_p,
     mlir.lower_fun(_cholesky_update_jax_fn, multiple_results=False))
+
+# xxt
+
+def _xxt_abstract_eval(x):
+  return ShapedArray((x.shape[0], x.shape[0]), x.dtype)
+
+xxt_p = Primitive('xxt')
+xxt_p.multiple_results = False
+xxt_p.def_abstract_eval(_xxt_abstract_eval)
+xxt_p.def_impl(partial(dispatch.apply_primitive, xxt_p))
+
+
+def _xxt_cuda_lowering_rule(ctx, a_matrix):
+  a_matrix_aval, = ctx.avals_in
+  try:
+    [platform] = ctx.module_context.platforms
+  except ValueError:
+    raise ValueError("Can only lower xxt on a single platform.") from None
+  if platform != "cuda":
+    raise NotImplementedError("Can only lower xxt on CUDA.")
+  zeros = mlir.full_like_aval(ctx, 0, ShapedArray(
+      (a_matrix_aval.shape[0], a_matrix_aval.shape[0]), a_matrix_aval.dtype))
+  return gpu_linalg.cuda_syrk(
+      a_matrix_aval.dtype, False, a_matrix, zeros, 1., 0.)
+
+mlir.register_lowering(xxt_p, _xxt_cuda_lowering_rule, platform='cuda')
+
 
 # Asymmetric eigendecomposition
 

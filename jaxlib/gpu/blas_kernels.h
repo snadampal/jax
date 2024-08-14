@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <cstddef>
 
+#include "third_party/gpus/cuda/include/cuComplex.h"
 #include "jaxlib/gpu/vendor.h"
 #include "xla/service/custom_call_status.h"
 
@@ -51,6 +52,21 @@ struct GeqrfBatchedDescriptor {
 
 void GeqrfBatched(gpuStream_t stream, void** buffers, const char* opaque,
                   size_t opaque_len, XlaCustomCallStatus* status);
+
+
+struct SyrkDescriptor {
+  BlasType type;
+  bool transpose;
+  int n, k;
+  double alpha;
+  double beta;
+};
+
+// C = \alpha op(A) @ op(A)^T + \beta C
+// see https://docs.nvidia.com/cuda/cublas/#cublas-t-syrk
+
+void Syrk(gpuStream_t stream, void** buffers, const char* opaque,
+          size_t opaque_len, XlaCustomCallStatus* status);
 
 }  // namespace JAX_GPU_NAMESPACE
 }  // namespace jax

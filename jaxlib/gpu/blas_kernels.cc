@@ -202,5 +202,59 @@ void GeqrfBatched(gpuStream_t stream, void** buffers, const char* opaque,
   }
 }
 
+static absl::Status Syrk_(gpuStream_t stream, void** buffers,
+                          const char* opaque, size_t opaque_len) {
+  auto s = UnpackDescriptor<SyrkDescriptor>(opaque, opaque_len);
+  JAX_RETURN_IF_ERROR(s.status());
+  const SyrkDescriptor& d = **s;
+  auto h = BlasHandlePool::Borrow(stream);
+  JAX_RETURN_IF_ERROR(h.status());
+  auto& handle = *h;
+
+  // cublas uses column-major matrices, so we need to transpose the matrix
+  // by default to use JAX buffers
+  cublasOperation_t op = d.transpose ? CUBLAS_OP_N : CUBLAS_OP_T;
+  cublasFillMode_t uplo = CUBLAS_FILL_MODE_UPPER;
+  int lda = d.transpose ? d.n : d.k;
+
+  switch (d.type) {
+    case BlasType::F32: {
+      float* a_matrix = static_cast<float*>(buffers[0]);
+      float* c_matrix = static_cast<float*>(buffers[1]);
+      float alpha = static_cast<float>(d.alpha);
+      float beta = static_cast<float>(d.beta);
+
+      JAX_RETURN_IF_ERROR(
+          JAX_AS_STATUS(cublasSsyrk(handle.get(), uplo, op, d.n, d.k, &alpha,
+                                    a_matrix, lda, &beta, c_matrix, d.n)));
+      break;
+    }
+    case BlasType::F64: {
+      double* a_matrix = static_cast<double*>(buffers[0]);
+      double* c_matrix = static_cast<double*>(buffers[1]);
+
+      JAX_RETURN_IF_ERROR(
+          JAX_AS_STATUS(cublasDsyrk(handle.get(), uplo, op, d.n, d.k, &d.alpha,
+                                    a_matrix, lda, &d.beta, c_matrix, d.n)));
+      break;
+    }
+    default: {
+      // TODO(kborislav): maybe add support for complex types
+      return absl::InvalidArgumentError("Unsupported dtype");
+    }
+  }
+  return absl::OkStatus();
+};
+
+void Syrk(gpuStream_t stream, void** buffers, const char* opaque,
+          size_t opaque_len, XlaCustomCallStatus* status) {
+  auto s = Syrk_(stream, buffers, opaque, opaque_len);
+  if (!s.ok()) {
+    XlaCustomCallStatusSetFailure(status, std::string(s.message()).c_str(),
+                                  s.message().length());
+  }
+};
+
+
 }  // namespace JAX_GPU_NAMESPACE
 }  // namespace jax

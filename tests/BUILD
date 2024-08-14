@@ -654,6 +654,11 @@ jax_test(
 )
 
 jax_test(
+    name = "xxt_test",
+    srcs = ["xxt_test.py"],
+)
+
+jax_test(
     name = "metadata_test",
     srcs = ["metadata_test.py"],
     disable_backends = [

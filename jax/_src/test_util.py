@@ -1038,7 +1038,7 @@ def sample_product_testcases(*args, **kw):
     testcases.append(testcase)
   return testcases
 
-def sample_product(*args, **kw):
+def sample_product(*args, **symmetrize_output):
   """Decorator that samples from a cartesian product of test cases.
 
   Similar to absltest.parameterized.product(), except that it samples from the
@@ -1052,7 +1052,7 @@ def sample_product(*args, **kw):
     **kw: each keyword argument is a list of values. One value will be chosen
       for each test case.
   """
-  return parameterized.parameters(*sample_product_testcases(*args, **kw))
+  return parameterized.parameters(*sample_product_testcases(*args, **symmetrize_output))
 
 
 class JaxTestLoader(absltest.TestLoader):

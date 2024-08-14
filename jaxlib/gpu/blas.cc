@@ -65,6 +65,13 @@ std::pair<size_t, nb::bytes> BuildGeqrfBatchedDescriptor(const dtype& dtype,
   return {size, PackDescriptor(GeqrfBatchedDescriptor{type, b, m, n})};
 }
 
+nb::bytes BuildSyrkDescriptor(const dtype& dtype, bool transpose,
+                              int n, int k, double alpha, double beta) {
+  BlasType type = DtypeToBlasType(dtype);
+  // TODO(kborislav): add support for alpha_complex, beta_complex
+  return PackDescriptor(SyrkDescriptor{type, transpose, n, k, alpha, beta});
+}
+
 nb::dict Registrations() {
   nb::dict dict;
   dict[JAX_GPU_PREFIX "blas_getrf_batched"] = EncapsulateFunction(GetrfBatched);
@@ -74,10 +81,10 @@ nb::dict Registrations() {
 
 NB_MODULE(_blas, m) {
   tsl::ImportNumpy();
-
   m.def("registrations", &Registrations);
   m.def("build_getrf_batched_descriptor", &BuildGetrfBatchedDescriptor);
   m.def("build_geqrf_batched_descriptor", &BuildGeqrfBatchedDescriptor);
+  m.def("build_syrk_descriptor", &BuildSyrkDescriptor);
 }
 
 }  // namespace

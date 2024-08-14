@@ -35,6 +35,17 @@ for cuda_module_name in [".cuda", "jax_cuda12_plugin"]:
   else:
     break
 
+try:
+  from .cuda import _blas as _cublas  # pytype: disable=import-error
+except ImportError:
+  for cuda_module_name in ["jax_cuda12_plugin"]:
+    try:
+      _cublas = importlib.import_module(f"{cuda_module_name}._blas")
+    except ImportError:
+      _cublas = None
+    else:
+      break
+
 if _cuda_linalg:
   for _name, _value in _cuda_linalg.registrations().items():
     api_version = 0 if _name == "cu_cholesky_update" else 1
@@ -120,3 +131,30 @@ def _cholesky_update_hlo(platform, gpu_linalg, r_matrix, w_vector, dtype):
 
 
 cuda_cholesky_update = partial(_cholesky_update_hlo, "cu", _cuda_linalg)
+
+def _syrk_hlo(platform, gpu_blas, dtype, do_transpose, a, c, alpha, beta):
+  """Generalized X @ X.T product."""
+  del platform
+  a_type = ir.RankedTensorType(a.type)
+  c_type = ir.RankedTensorType(c.type)
+  dims = a_type.shape
+  assert len(dims) == 2
+  n = dims[0]
+  k = dims[1]
+  assert c_type.shape == [dims[0], dims[0]], f"{c_type.shape} != ({dims[0]}, {dims[0]})"
+  assert a_type.element_type == c_type.element_type
+  if not gpu_blas:
+    raise GpuLibNotLinkedError()
+  opaque = gpu_blas.build_syrk_descriptor(
+      np.dtype(dtype), do_transpose, n, k, alpha, beta)
+  return custom_call(
+      "cublas_syrk",
+      operands=[a, c],
+      result_types=[c_type],
+      operand_output_aliases={1: 0},
+      backend_config=opaque,
+  ).results[:1]
+
+
+cuda_syrk = partial(_syrk_hlo, "cu", _cublas)
+

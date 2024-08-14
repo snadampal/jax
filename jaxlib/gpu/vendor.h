@@ -98,6 +98,11 @@ typedef cusparseDnVecDescr_t gpusparseDnVecDescr_t;
 #define gpublasCgetrfBatched cublasCgetrfBatched
 #define gpublasZgetrfBatched cublasZgetrfBatched
 
+#define gpublasSsyrk cublasSsyrk
+#define gpublasDsyrk cublasDsyrk
+#define gpublasCsyrk cublasCsyrk
+#define gpublasZsyrk cublasZsyrk
+
 #define GPUBLAS_STATUS_SUCCESS CUBLAS_STATUS_SUCCESS
 
 #define gpudnnCreate cudnnCreate
