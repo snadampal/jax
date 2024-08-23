@@ -2972,7 +2972,7 @@ def clear_backends():
 @atexit.register
 def clean_up():
   db = xb._default_backend
-  if db is not None and db.platform == "cpu":  # pytype: disable=attribute-error
+  if db is not None:
     clear_backends()
 
 def live_arrays(platform=None):
